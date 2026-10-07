@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>蛋訂ㄧ下 餐車POS</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Noto Sans TC', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              header: '#c85a0e',
+              headerGradStart: '#b84d05',
+              headerGradEnd: '#a03e00',
+              btnPrimary: '#d98236',
+              btnHover: '#c47128',
+              cardBorder: '#fde5b4',
+              activeBg: '#fef7ea',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .tap-active:active { transform: scale(0.97); }
+    body { touch-action: manipulation; }
+  </style>
+</head>
+<body class="bg-[#faf7f2] text-stone-800 font-sans min-h-screen flex flex-col antialiased select-none">
+
+  <!-- 頂部橘色導航列 (完全還原截圖樣式) -->
+  <header class="bg-gradient-to-r from-[#ba5108] via-[#c65b0c] to-[#a84403] text-amber-50 px-4 py-2.5 shadow flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center space-x-2.5">
+      <span class="text-2xl p-1 bg-amber-600/50 rounded-xl inline-block">🧇</span>
+      <div>
+        <h1 class="text-lg md:text-xl font-black tracking-wide flex items-center gap-1.5 leading-none">
+          蛋訂ㄧ下
+          <span class="bg-[#e68a1d] text-amber-950 text-[11px] px-2 py-0.5 rounded-full font-bold shadow-xs">餐車POS</span>
+        </h1>
+        <p class="text-[11px] text-amber-200/90 font-medium mt-1 leading-none">
+          現烤雞蛋糕專門餐車 ｜ <span id="currentDateDisplay">2026/10/07 (週三)</span>
+        </p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- 月結報表 -->
+      <button onclick="openMonthlyModal()" class="bg-[#783002]/85 hover:bg-[#602602] text-amber-100 text-xs px-2.5 py-1.5 rounded-lg font-bold shadow-xs flex items-center gap-1 border border-amber-600/40 tap-active transition">
+        <span>📅 月結報表</span>
+      </button>
+
+      <!-- 日結算 / 匯出 -->
+      <button onclick="openDailyModal()" class="bg-[#e89025] hover:bg-[#d47f18] text-amber-950 text-xs px-2.5 py-1.5 rounded-lg font-black shadow-xs flex items-center gap-1 tap-active transition">
+        <span>📊 日結算 / 匯出</span>
+      </button>
+
+      <!-- 設定與歸零 -->
+      <button onclick="openSettingsModal()" title="資料管理與歸零" class="p-1.5 bg-[#8b3803] hover:bg-[#722e02] text-amber-200 hover:text-white rounded-lg border border-amber-600/40 transition tap-active">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full mx-auto p-3 grid grid-cols-1 lg:grid-cols-12 gap-3 max-w-[1500px]">
+    
+    <!-- 左側欄：菜單 (上) + 本單明細與結帳 (下) (占 7 格) -->
+    <section class="lg:col-span-7 flex flex-col gap-3">
+      
+      <!-- 菜單 3x3 網格卡片清單 (純粹名稱版) -->
+      <div class="bg-white rounded-2xl p-3 shadow-xs border border-amber-200/60">
+        <div class="grid grid-cols-3 gap-2.5" id="menuGrid">
+          <!-- 菜單卡片由 JavaScript 生成，對應截圖樣式 -->
+        </div>
+      </div>
+
+      <!-- 本單明細與收銀結帳區 (對齊截圖樣式) -->
+      <div class="bg-white rounded-2xl p-4 shadow-xs border border-amber-200/60 flex flex-col">
+        <!-- 標題列 -->
+        <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm font-black text-stone-800">🛒 本單明細</span>
+            <span id="cartCountBadge" class="bg-amber-100/80 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-full">0 份</span>
+          </div>
+          <button onclick="clearCart()" class="text-xs text-stone-400 hover:text-stone-600 flex items-center gap-0.5 py-0.5 px-1.5 rounded transition">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            清空本單
+          </button>
+        </div>
+
+        <!-- 購物車清單列表 -->
+        <div id="cartItemList" class="divide-y divide-amber-50/60 max-h-36 overflow-y-auto my-1.5 pr-1">
+          <!-- 動態購物車項目 -->
+        </div>
+
+        <!-- 應收金額總結與快捷付現列 -->
+        <div class="pt-2 border-t border-amber-100/70">
+          <div class="flex justify-between items-baseline mb-2">
+            <span class="text-stone-600 text-xs font-bold">訂單應收總額</span>
+            <span class="text-3xl font-black text-stone-900 font-mono tracking-tight" id="cartTotalText">$0</span>
+          </div>
+
+          <!-- 客人支付與應找零錢顯示 -->
+          <div class="flex items-center justify-between text-xs text-stone-600 mb-2 px-0.5">
+            <span class="font-bold flex items-center gap-1">
+              <span>💵 客人支付：</span>
+              <span id="paidAmountDisplay" class="text-stone-800 font-extrabold font-mono text-sm">$0</span>
+            </span>
+            <span class="font-bold flex items-center gap-1">
+              <span>應找零錢：</span>
+              <span id="changeDisplay" class="text-stone-400 font-bold font-mono text-sm">$0</span>
+            </span>
+          </div>
+
+          <!-- 快速面額輔助鍵 (剛好、$100、$200、$500、$1000、歸零) -->
+          <div class="grid grid-cols-6 gap-1.5 mb-3">
+            <button onclick="setExactPayment()" class="bg-[#fef4d8] hover:bg-[#fae8be] text-amber-950 text-xs font-bold py-1.5 rounded-lg border border-amber-200 transition active:scale-95 text-center">剛好</button>
+            <button onclick="addPayment(100)" class="bg-[#f3f4f6] hover:bg-stone-200 text-stone-700 text-xs font-bold py-1.5 rounded-lg transition active:scale-95 text-center font-mono">$100</button>
+            <button onclick="addPayment(200)" class="bg-[#f3f4f6] hover:bg-stone-200 text-stone-700 text-xs font-bold py-1.5 rounded-lg transition active:scale-95 text-center font-mono">$200</button>
+            <button onclick="addPayment(500)" class="bg-[#f3f4f6] hover:bg-stone-200 text-stone-700 text-xs font-bold py-1.5 rounded-lg transition active:scale-95 text-center font-mono">$500</button>
+            <button onclick="addPayment(1000)" class="bg-[#f3f4f6] hover:bg-stone-200 text-stone-700 text-xs font-bold py-1.5 rounded-lg transition active:scale-95 text-center font-mono">$1000</button>
+            <button onclick="clearPayment()" class="bg-[#f3f4f6] hover:bg-stone-200 text-stone-500 text-xs font-bold py-1.5 rounded-lg transition active:scale-95 text-center">歸零</button>
+          </div>
+
+          <!-- 確認出餐 / 結帳完成按鈕 -->
+          <button id="checkoutBtn" onclick="submitCheckout()" disabled class="w-full bg-[#d6904d] hover:bg-[#c67e3a] disabled:bg-[#d6b797] disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-base py-3 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 tap-active">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+            確認出餐 / 結帳完成
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 右側欄：品項銷售排行榜 (上) + 今日交易流水帳 (下) (占 5 格) -->
+    <section class="lg:col-span-5 flex flex-col gap-3">
+      
+      <!-- 今日品項銷售排行榜 (對齊截圖樣式) -->
+      <div class="bg-white rounded-2xl p-3.5 shadow-xs border border-amber-200/60 flex flex-col">
+        <div class="flex items-center justify-between pb-2 mb-1 border-b border-stone-100">
+          <h3 class="text-xs font-black text-stone-800 flex items-center gap-1.5">
+            <span class="w-1.5 h-3 bg-amber-500 rounded-full inline-block"></span>
+            今日品項銷售排行榜
+          </h3>
+          <span class="text-[11px] text-stone-400">份數 (營收)</span>
+        </div>
+        <div id="flavorStatsList" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          <!-- 排行榜動態載入 -->
+        </div>
+      </div>
+
+      <!-- 今日交易流水帳 (可單筆作廢) -->
+      <div class="bg-white rounded-2xl p-3.5 shadow-xs border border-amber-200/60 flex-1 flex flex-col min-h-[300px]">
+        <div class="flex items-center justify-between pb-2 mb-1 border-b border-stone-100">
+          <h3 class="text-xs font-black text-stone-800 flex items-center gap-1.5">
+            <span class="w-1.5 h-3 bg-stone-500 rounded-full inline-block"></span>
+            今日交易流水帳 (可單筆作廢)
+          </h3>
+          <span class="text-[11px] text-stone-400" id="orderListCountHint">共 0 筆</span>
+        </div>
+
+        <div id="orderHistoryList" class="divide-y divide-stone-100 overflow-y-auto max-h-[460px] pr-1 flex-1">
+          <!-- 流水帳動態載入 -->
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ======================== 彈出視窗：日結算 / 匯出 ======================== -->
+  <div id="dailyModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white w-full max-w-lg rounded-2xl p-4 sm:p-5 shadow-2xl border border-amber-200 flex flex-col max-h-[90vh] overflow-hidden">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-200">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📊</span>
+          <div>
+            <h2 class="text-base sm:text-lg font-black text-stone-900">蛋訂ㄧ下 - 今日營業結算</h2>
+            <p class="text-xs text-stone-500" id="modalDailySubtitle">營運日結快報</p>
+          </div>
+        </div>
+        <button onclick="closeDailyModal()" class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center transition">✕</button>
+      </div>
+
+      <div class="overflow-y-auto py-3 space-y-3 my-1 text-xs">
+        <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-3 grid grid-cols-3 text-center">
+          <div>
+            <div class="text-[11px] text-stone-500 font-bold">今日總營業額</div>
+            <div class="text-xl font-black text-amber-900 mt-0.5 font-mono" id="modalSummaryRevenue">$0</div>
+          </div>
+          <div class="border-x border-amber-200">
+            <div class="text-[11px] text-stone-500 font-bold">結帳單數</div>
+            <div class="text-xl font-black text-stone-800 mt-0.5 font-mono" id="modalSummaryOrders">0 單</div>
+          </div>
+          <div>
+            <div class="text-[11px] text-stone-500 font-bold">出餐總份數</div>
+            <div class="text-xl font-black text-stone-800 mt-0.5 font-mono" id="modalSummaryItems">0 份</div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1 flex justify-between items-center">
+            <span>LINE 回報 / 記事本文字</span>
+            <span class="text-[10px] text-stone-400">一鍵複製傳至群組對帳</span>
+          </label>
+          <textarea id="dailyLineReportText" readonly rows="7" class="w-full bg-stone-50 border border-stone-300 rounded-xl p-2.5 text-xs font-mono text-stone-800 focus:outline-none select-all"></textarea>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-stone-200 flex flex-col gap-2">
+        <div class="flex gap-2">
+          <button onclick="copyDailyLineReport()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95">
+            複製 LINE 日報表
+          </button>
+          <button onclick="exportCSV('daily')" class="flex-1 bg-stone-700 hover:bg-stone-800 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95">
+            下載今日 CSV (Excel)
+          </button>
+        </div>
+        <button onclick="requestResetTodayOrders()" class="w-full text-stone-500 hover:text-red-600 text-xs py-1.5 rounded-lg font-bold flex items-center justify-center gap-1 hover:bg-red-50 transition">
+          清空今日所有訂單（測試訓練歸零）
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== 彈出視窗：月結報表 ======================== -->
+  <div id="monthlyModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white w-full max-w-lg rounded-2xl p-4 sm:p-5 shadow-2xl border border-amber-200 flex flex-col max-h-[90vh] overflow-hidden">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-200">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📅</span>
+          <div>
+            <h2 class="text-base sm:text-lg font-black text-stone-900">蛋訂ㄧ下 - 月度營運結算</h2>
+            <p class="text-xs text-stone-500">整月業績彙整</p>
+          </div>
+        </div>
+        <button onclick="closeMonthlyModal()" class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center transition">✕</button>
+      </div>
+
+      <div class="overflow-y-auto py-3 space-y-3 my-1 text-xs">
+        <div class="flex items-center justify-between bg-stone-50 p-2 rounded-xl border border-stone-200">
+          <span class="font-bold text-stone-700">統計月份：</span>
+          <input type="month" id="monthPicker" onchange="renderMonthlyData()" class="bg-white border border-stone-300 rounded-lg px-2.5 py-1 text-xs font-bold text-stone-800">
+        </div>
+
+        <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-3 grid grid-cols-2 text-center">
+          <div>
+            <div class="text-[11px] text-stone-500 font-bold">全月總營業額</div>
+            <div class="text-2xl font-black text-amber-900 mt-0.5 font-mono" id="monthlyTotalRev">$0</div>
+          </div>
+          <div class="border-l border-amber-200">
+            <div class="text-[11px] text-stone-500 font-bold">全月總單數</div>
+            <div class="text-2xl font-black text-stone-800 mt-0.5 font-mono" id="monthlyTotalOrders">0 單</div>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-stone-800 mb-1.5 flex items-center gap-1">
+            <span class="w-1.5 h-3 bg-amber-600 rounded-full inline-block"></span>
+            每日營業額明細
+          </h4>
+          <div id="monthlyDailyList" class="space-y-1 max-h-32 overflow-y-auto border border-stone-200 rounded-xl p-2 bg-stone-50"></div>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-stone-800 mb-1.5 flex items-center gap-1">
+            <span class="w-1.5 h-3 bg-amber-600 rounded-full inline-block"></span>
+            全月熱銷品項統計
+          </h4>
+          <div id="monthlyItemRank" class="space-y-1 max-h-28 overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-stone-200 flex flex-col gap-2">
+        <div class="flex gap-2">
+          <button onclick="copyMonthlyReport()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95">
+            複製 LINE 月報表
+          </button>
+          <button onclick="exportCSV('monthly')" class="flex-1 bg-stone-700 hover:bg-stone-800 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95">
+            下載本月 CSV
+          </button>
+        </div>
+        <button onclick="requestResetMonthOrders()" class="w-full text-stone-500 hover:text-red-600 text-xs py-1.5 rounded-lg font-bold flex items-center justify-center gap-1 hover:bg-red-50 transition">
+          清空所選月份全部訂單（測試歸零）
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== 彈出視窗：設定與全歸零 ======================== -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl border border-stone-200">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-200">
+        <h3 class="text-base font-black text-stone-900 flex items-center gap-1.5">
+          <span>🛠️</span> 系統資料管理
+        </h3>
+        <button onclick="closeSettingsModal()" class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center">✕</button>
+      </div>
+      <div class="py-3 space-y-2 text-xs text-stone-600">
+        <p class="leading-relaxed">在正式擺攤營業前，可將所有練習的測試訂單一鍵歸零清除。</p>
+      </div>
+      <div class="pt-2 border-t border-stone-200 flex flex-col gap-2">
+        <button onclick="requestResetAllData()" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 rounded-xl text-xs shadow-xs transition active:scale-95">
+          一鍵清空所有歷史資料（正式營運前歸零）
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript 核心邏輯 -->
+  <script>
+    // 菜單配置：純粹名稱與 Emoji，無任何形容詞
+    const MENU_ITEMS = [
+      { id: 'orig_s',    name: '原味小',    price: 50,  badge: '人氣', icon: '🐣' },
+      { id: 'orig_l',    name: '原味大',    price: 90,  badge: '推薦', icon: '🐥' },
+      { id: 'choco',     name: '巧克力',    price: 70,  badge: '熱賣', icon: '🍫' },
+      { id: 'corn_chz',  name: '玉米起司',  price: 70,  badge: '人氣', icon: '🌽🧀' },
+      { id: 'cheese',    name: '起司',      price: 70,  badge: '牽絲', icon: '🧀' },
+      { id: 'custard',   name: '卡士達',    price: 70,  badge: '香滑', icon: '🍮' },
+      { id: 'tea_single',name: '泰奶單點',  price: 50,  badge: '飲品', icon: '🧋' },
+      { id: 'tea_add',   name: '泰奶加購',  price: 40,  badge: '超值', icon: '🥤' },
+      { id: 'discount',  name: '折價卷',    price: -10, badge: '折抵', icon: '🎟️' },
+    ];
+
+    let currentCart = {};
+    let currentPaid = 0;
+    const STORAGE_KEY = 'DANDING_POS_DATA_STABLE';
+    let allOrders = [];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initDateDisplay();
+      loadOrders();
+      renderMenuCards();
+      renderCart();
+      updateDashboard();
+
+      const now = new Date();
+      const ym = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}`;
+      document.getElementById('monthPicker').value = ym;
+    });
+
+    function initDateDisplay() {
+      const now = new Date();
+      const days = ['日', '一', '二', '三', '四', '五', '六'];
+      const dateStr = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} (週${days[now.getDay()]})`;
+      document.getElementById('currentDateDisplay').textContent = dateStr;
+      document.getElementById('modalDailySubtitle').textContent = `${dateStr} 營運快報`;
+    }
+
+    function getTodayString() {
+      const now = new Date();
+      return `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+    }
+
+    function loadOrders() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        allOrders = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        allOrders = [];
+      }
+    }
+
+    function saveOrders() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allOrders));
+    }
+
+    // 渲染 3x3 菜單卡片 (依截圖外觀精確還原)
+    function renderMenuCards() {
+      const grid = document.getElementById('menuGrid');
+      grid.innerHTML = '';
+
+      MENU_ITEMS.forEach(item => {
+        const isDiscount = item.price < 0;
+        const btn = document.createElement('button');
+        btn.onclick = () => addToCart(item.id);
+        
+        // 邊框顏色與背景細節
+        const borderClass = isDiscount ? 'border-rose-300 bg-rose-50/50' : 'border-[#fde5b4] bg-white hover:border-amber-400';
+        
+        btn.className = `tap-active relative border-2 ${borderClass} rounded-2xl p-3 flex flex-col justify-between text-left shadow-xs transition group h-24 sm:h-28 overflow-hidden`;
+        
+        btn.innerHTML = `
+          <div class="flex items-start justify-between w-full">
+            <span class="text-xl sm:text-2xl">${item.icon}</span>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isDiscount ? 'bg-rose-100 text-rose-800' : 'bg-[#fff5e3] text-amber-900'}">${item.badge}</span>
+          </div>
+          <div>
+            <div class="font-extrabold ${isDiscount ? 'text-rose-900' : 'text-stone-900'} text-sm sm:text-base leading-tight">${item.name}</div>
+            <div class="flex items-baseline gap-0.5 mt-0.5">
+              <span class="text-[11px] text-stone-400 font-medium">NT$</span>
+              <span class="text-lg sm:text-xl font-black ${isDiscount ? 'text-rose-600' : 'text-stone-900'} font-mono">${item.price}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(btn);
+      });
+    }
+
+    function addToCart(id) {
+      if (!currentCart[id]) currentCart[id] = 0;
+      currentCart[id] += 1;
+      renderCart();
+    }
+
+    function adjustCartQty(id, delta) {
+      if (!currentCart[id]) return;
+      currentCart[id] += delta;
+      if (currentCart[id] <= 0) delete currentCart[id];
+      renderCart();
+    }
+
+    function removeCartItem(id) {
+      delete currentCart[id];
+      renderCart();
+    }
+
+    function clearCart() {
+      currentCart = {};
+      currentPaid = 0;
+      renderCart();
+    }
+
+    function getCartTotal() {
+      let total = 0;
+      let totalQty = 0;
+      for (const [id, qty] of Object.entries(currentCart)) {
+        const item = MENU_ITEMS.find(m => m.id === id);
+        if (item) {
+          total += item.price * qty;
+          if (item.price > 0) totalQty += qty;
+        }
+      }
+      return { total: Math.max(0, total), totalQty };
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cartItemList');
+      const badge = document.getElementById('cartCountBadge');
+      const totalEl = document.getElementById('cartTotalText');
+      const checkoutBtn = document.getElementById('checkoutBtn');
+
+      const { total, totalQty } = getCartTotal();
+      badge.textContent = `${totalQty} 份`;
+      totalEl.textContent = `$${total}`;
+
+      const itemKeys = Object.keys(currentCart);
+      checkoutBtn.disabled = itemKeys.length === 0;
+
+      if (itemKeys.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-5 text-stone-400 text-xs flex flex-col items-center">
+            <span class="text-2xl mb-1 opacity-60">🥞</span>
+            點擊上方品項開始點餐
+          </div>
+        `;
+        currentPaid = 0;
+        updatePaymentDisplay();
+        return;
+      }
+
+      container.innerHTML = '';
+      itemKeys.forEach(id => {
+        const item = MENU_ITEMS.find(m => m.id === id);
+        if (!item) return;
+        const qty = currentCart[id];
+        const isDiscount = item.price < 0;
+        const subtotal = item.price * qty;
+
+        const row = document.createElement('div');
+        row.className = 'py-1.5 flex items-center justify-between gap-1.5 text-xs';
+        row.innerHTML = `
+          <div class="flex items-center gap-1.5 flex-1 min-w-0">
+            <span>${item.icon}</span>
+            <span class="font-bold ${isDiscount ? 'text-rose-700' : 'text-stone-900'} truncate">${item.name}</span>
+          </div>
+
+          <div class="flex items-center gap-1 bg-stone-100 rounded-lg p-0.5">
+            <button onclick="adjustCartQty('${item.id}', -1)" class="w-5 h-5 bg-white rounded shadow-xs font-bold text-stone-700 flex items-center justify-center">-</button>
+            <span class="w-5 text-center font-bold text-stone-900 font-mono">${qty}</span>
+            <button onclick="adjustCartQty('${item.id}', 1)" class="w-5 h-5 bg-white rounded shadow-xs font-bold text-stone-700 flex items-center justify-center">+</button>
+          </div>
+
+          <div class="text-right w-12 font-mono font-black ${isDiscount ? 'text-rose-600' : 'text-stone-900'}">
+            ${subtotal < 0 ? `-$${Math.abs(subtotal)}` : `$${subtotal}`}
+          </div>
+
+          <button onclick="removeCartItem('${item.id}')" class="text-stone-300 hover:text-red-500 pl-1">✕</button>
+        `;
+        container.appendChild(row);
+      });
+
+      updatePaymentDisplay();
+    }
+
+    function setExactPayment() {
+      const { total } = getCartTotal();
+      currentPaid = total;
+      updatePaymentDisplay();
+    }
+
+    function addPayment(amt) {
+      currentPaid = (currentPaid || 0) + amt;
+      updatePaymentDisplay();
+    }
+
+    function clearPayment() {
+      currentPaid = 0;
+      updatePaymentDisplay();
+    }
+
+    function updatePaymentDisplay() {
+      const { total } = getCartTotal();
+      const paidEl = document.getElementById('paidAmountDisplay');
+      const changeEl = document.getElementById('changeDisplay');
+
+      paidEl.textContent = `$${currentPaid}`;
+      const diff = currentPaid - total;
+
+      if (total === 0 || currentPaid === 0) {
+        changeEl.textContent = `$0`;
+        changeEl.className = "text-stone-400 font-bold font-mono text-sm";
+      } else if (diff >= 0) {
+        changeEl.textContent = `$${diff}`;
+        changeEl.className = "text-emerald-700 font-black font-mono text-sm";
+      } else {
+        changeEl.textContent = `不足 $${Math.abs(diff)}`;
+        changeEl.className = "text-red-600 font-black font-mono text-xs";
+      }
+    }
+
+    function submitCheckout() {
+      const { total, totalQty } = getCartTotal();
+      if (Object.keys(currentCart).length === 0) return;
+
+      const now = new Date();
+      const dateStr = getTodayString();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+      const itemsSnapshot = [];
+      for (const [id, qty] of Object.entries(currentCart)) {
+        const item = MENU_ITEMS.find(m => m.id === id);
+        if (item) {
+          itemsSnapshot.push({
+            id: item.id,
+            name: item.name,
+            icon: item.icon,
+            price: item.price,
+            qty: qty,
+            subtotal: item.price * qty
+          });
+        }
+      }
+
+      const order = {
+        id: 'ORD-' + Date.now().toString().slice(-6),
+        date: dateStr,
+        month: dateStr.slice(0, 7),
+        timeStr: timeStr,
+        items: itemsSnapshot,
+        totalAmount: total,
+        totalQuantity: totalQty,
+        paid: currentPaid >= total ? currentPaid : total,
+        change: currentPaid >= total ? (currentPaid - total) : 0
+      };
+
+      allOrders.unshift(order);
+      saveOrders();
+      clearCart();
+      updateDashboard();
+    }
+
+    function updateDashboard() {
+      const todayStr = getTodayString();
+      const todayOrders = allOrders.filter(o => o.date === todayStr);
+
+      let revenue = 0;
+      let totalQty = 0;
+      const count = todayOrders.length;
+
+      const qtyMap = {};
+      const revMap = {};
+      MENU_ITEMS.forEach(m => {
+        qtyMap[m.id] = 0;
+        revMap[m.id] = 0;
+      });
+
+      todayOrders.forEach(ord => {
+        revenue += ord.totalAmount;
+        ord.items.forEach(it => {
+          if (it.price > 0) totalQty += it.qty;
+          if (qtyMap[it.id] !== undefined) {
+            qtyMap[it.id] += it.qty;
+            revMap[it.id] += it.subtotal;
+          }
+        });
+      });
+
+      renderFlavorStats(qtyMap, revMap);
+      renderOrderHistory(todayOrders);
+      updateDailyModal(todayStr, revenue, count, totalQty, qtyMap, revMap);
+    }
+
+    // 渲染右側品項銷售排行榜 (對齊截圖)
+    function renderFlavorStats(qtyMap, revMap) {
+      const container = document.getElementById('flavorStatsList');
+      container.innerHTML = '';
+
+      const items = [...MENU_ITEMS].filter(m => m.price > 0).sort((a, b) => qtyMap[b.id] - qtyMap[a.id]);
+
+      items.forEach(item => {
+        const q = qtyMap[item.id] || 0;
+        const r = revMap[item.id] || 0;
+
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center py-1 text-xs hover:bg-stone-50 px-1 rounded';
+        row.innerHTML = `
+          <span class="font-bold text-stone-800 flex items-center gap-1.5">
+            <span>${item.icon}</span> ${item.name}
+          </span>
+          <span class="font-mono text-stone-500">
+            <strong class="text-stone-900 font-black">${q}</strong> 份 
+            <span class="text-stone-400">($${r})</span>
+          </span>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // 渲染右側流水帳 (對齊截圖樣式與垃圾桶按鈕)
+    function renderOrderHistory(orders) {
+      const container = document.getElementById('orderHistoryList');
+      document.getElementById('orderListCountHint').textContent = `共 ${orders.length} 筆`;
+
+      if (orders.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-stone-400 text-xs">今日尚無交易記錄</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      orders.forEach(order => {
+        const itemDesc = order.items.map(i => `${i.name}×${i.qty}`).join(', ');
+
+        const card = document.createElement('div');
+        card.className = 'py-2 flex items-center justify-between text-xs hover:bg-amber-50/40 px-1 rounded transition';
+        card.innerHTML = `
+          <div class="flex-1 min-w-0 pr-2">
+            <div class="flex items-center gap-1.5">
+              <span class="font-mono font-bold text-stone-600">${order.timeStr}</span>
+              <span class="font-mono text-[10px] text-stone-400">#${order.id}</span>
+            </div>
+            <p class="text-stone-600 truncate mt-0.5 text-[11px]">${itemDesc}</p>
+          </div>
+          <div class="text-right flex items-center gap-2">
+            <div>
+              <p class="font-black text-stone-900 text-sm font-mono">$${order.totalAmount}</p>
+              <p class="text-[10px] text-stone-400 font-mono">${order.totalQuantity} 份</p>
+            </div>
+            <button onclick="voidOrder('${order.id}')" title="作廢刪除此單" class="p-1 text-stone-300 hover:text-red-500 rounded transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function voidOrder(id) {
+      if (!confirm(`確定要作廢訂單 #${id} 嗎？此單金額將即時扣除。`)) return;
+      allOrders = allOrders.filter(o => o.id !== id);
+      saveOrders();
+      updateDashboard();
+    }
+
+    function updateDailyModal(dateStr, rev, count, qty, qtyMap, revMap) {
+      document.getElementById('modalSummaryRevenue').textContent = `$${rev}`;
+      document.getElementById('modalSummaryOrders').textContent = `${count} 單`;
+      document.getElementById('modalSummaryItems').textContent = `${qty} 份`;
+
+      let text = `📢 【蛋訂ㄧ下・今日營業結算】\n📅 營業日期：${dateStr}\n💰 今日總營業額：$${rev} 元\n🧾 總單數：${count} 單\n🧇 出餐總份數：${qty} 份\n──────────────────\n【品項銷售排行】\n`;
+      MENU_ITEMS.forEach(m => {
+        const q = qtyMap[m.id] || 0;
+        const r = revMap[m.id] || 0;
+        if (q > 0) text += `• ${m.icon} ${m.name}：${q} 份 ($${r})\n`;
+      });
+      text += `──────────────────\n結算時間：${new Date().toLocaleTimeString('zh-TW')}`;
+      document.getElementById('dailyLineReportText').value = text;
+    }
+
+    function copyDailyLineReport() {
+      const textarea = document.getElementById('dailyLineReportText');
+      textarea.select();
+      document.execCommand('copy');
+      alert('📋 日報表已成功複製至剪貼簿！');
+    }
+
+    // 月結邏輯
+    function openMonthlyModal() {
+      renderMonthlyData();
+      document.getElementById('monthlyModal').classList.remove('hidden');
+    }
+    function closeMonthlyModal() {
+      document.getElementById('monthlyModal').classList.add('hidden');
+    }
+
+    function renderMonthlyData() {
+      const targetMonth = document.getElementById('monthPicker').value;
+      const monthOrders = allOrders.filter(o => o.month === targetMonth || (o.date && o.date.startsWith(targetMonth)));
+
+      const totalRev = monthOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+      document.getElementById('monthlyTotalRev').textContent = `$${totalRev}`;
+      document.getElementById('monthlyTotalOrders').textContent = `${monthOrders.length} 單`;
+
+      // 每日列表
+      const dailyMap = {};
+      monthOrders.forEach(o => {
+        if (!dailyMap[o.date]) dailyMap[o.date] = { count: 0, revenue: 0 };
+        dailyMap[o.date].count += 1;
+        dailyMap[o.date].revenue += o.totalAmount;
+      });
+
+      const dailyContainer = document.getElementById('monthlyDailyList');
+      const sortedDays = Object.keys(dailyMap).sort().reverse();
+
+      if (sortedDays.length === 0) {
+        dailyContainer.innerHTML = '<p class="text-stone-400 py-3 text-center">該月份尚無任何銷售紀錄</p>';
+      } else {
+        dailyContainer.innerHTML = sortedDays.map(day => `
+          <div class="flex justify-between items-center py-1 border-b border-stone-200/60 last:border-0">
+            <span class="font-mono text-stone-700 font-bold">${day}</span>
+            <div class="space-x-2">
+              <span class="text-stone-500">${dailyMap[day].count} 單</span>
+              <span class="font-mono font-bold text-amber-900">$${dailyMap[day].revenue}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // 品項排行
+      const itemMap = {};
+      MENU_ITEMS.forEach(m => itemMap[m.id] = { name: m.name, icon: m.icon, count: 0, sum: 0, price: m.price });
+      monthOrders.forEach(o => {
+        o.items.forEach(it => {
+          if (itemMap[it.id]) {
+            itemMap[it.id].count += it.qty;
+            itemMap[it.id].sum += it.subtotal;
+          }
+        });
+      });
+
+      const sortedItems = Object.values(itemMap).filter(m => m.price > 0).sort((a, b) => b.count - a.count);
+      const rankContainer = document.getElementById('monthlyItemRank');
+
+      if (monthOrders.length === 0) {
+        rankContainer.innerHTML = '<p class="text-stone-400 py-3 text-center">該月份尚無品項銷量</p>';
+      } else {
+        rankContainer.innerHTML = sortedItems.map((item, idx) => `
+          <div class="flex justify-between items-center py-1 border-b border-stone-100 last:border-0">
+            <span class="text-stone-700 font-medium">${idx + 1}. ${item.icon} ${item.name}</span>
+            <div class="space-x-2 font-mono">
+              <span class="font-bold text-amber-900">${item.count} 份</span>
+              <span class="text-stone-400">($${item.sum})</span>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function copyMonthlyReport() {
+      const targetMonth = document.getElementById('monthPicker').value;
+      const monthOrders = allOrders.filter(o => o.month === targetMonth || (o.date && o.date.startsWith(targetMonth)));
+      const totalRev = monthOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+      const itemMap = {};
+      monthOrders.forEach(o => {
+        o.items.forEach(it => {
+          itemMap[it.name] = (itemMap[it.name] || 0) + it.qty;
+        });
+      });
+
+      let itemsText = Object.entries(itemMap).map(([name, cnt]) => `▪ ${name}: ${cnt} 份`).join('\n') || '無交易';
+      const text = `📈 【蛋訂ㄧ下・月份營收報表】\n🗓️ 統計月份：${targetMonth}\n💰 全月總營收：$${totalRev} 元\n🧾 全月總單數：${monthOrders.length} 筆\n──────────────────\n【全月熱銷統計】\n${itemsText}\n──────────────────\n匯出時間：${new Date().toLocaleDateString('zh-TW')}`;
+
+      const t = document.createElement('textarea');
+      t.value = text;
+      document.body.appendChild(t);
+      t.select();
+      document.execCommand('copy');
+      document.body.removeChild(t);
+      alert('📋 月報表已成功複製至剪貼簿！');
+    }
+
+    // CSV 匯出
+    function exportCSV(type) {
+      let orders = [];
+      let filename = '';
+      if (type === 'daily') {
+        const todayStr = getTodayString();
+        orders = allOrders.filter(o => o.date === todayStr);
+        filename = `蛋訂ㄧ下_日報表_${todayStr}.csv`;
+      } else {
+        const ym = document.getElementById('monthPicker').value;
+        orders = allOrders.filter(o => o.month === ym || (o.date && o.date.startsWith(ym)));
+        filename = `蛋訂ㄧ下_月報表_${ym}.csv`;
+      }
+
+      if (orders.length === 0) {
+        alert('所選期間內無任何訂單紀錄');
+        return;
+      }
+
+      let csv = '\uFEFF訂單編號,日期,時間,購買品項明細,總數量,訂單金額,實收,找零\n';
+      orders.forEach(o => {
+        const desc = o.items.map(i => `${i.name}*${i.qty}`).join('; ');
+        csv += `"${o.id}","${o.date}","${o.timeStr}","${desc}",${o.totalQuantity},${o.totalAmount},${o.paid},${o.change}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // 清除今日資料
+    function requestResetTodayOrders() {
+      const todayStr = getTodayString();
+      if (!confirm(`⚠️ 確定要清除今日（${todayStr}）的所有測試訂單嗎？\n此動作將讓今日營收全數歸零。`)) return;
+      allOrders = allOrders.filter(o => o.date !== todayStr);
+      saveOrders();
+      clearCart();
+      updateDashboard();
+      closeDailyModal();
+      alert('今日訂單已歸零重置！');
+    }
+
+    // 清除該月資料
+    function requestResetMonthOrders() {
+      const ym = document.getElementById('monthPicker').value;
+      if (!confirm(`⚠️ 確定要刪除「${ym} 月份」的所有訂單紀錄嗎？`)) return;
+      allOrders = allOrders.filter(o => !(o.month === ym || (o.date && o.date.startsWith(ym))));
+      saveOrders();
+      clearCart();
+      updateDashboard();
+      renderMonthlyData();
+      alert(`${ym} 月份資料已清空！`);
+    }
+
+    // 全部歸零
+    function requestResetAllData() {
+      if (!confirm('🚨【確認全面重置】即將永久刪除「所有歷史訂單」！\n這適合在正式擺攤開張前將測試資料徹底歸零。是否確定清除？')) return;
+      allOrders = [];
+      localStorage.removeItem(STORAGE_KEY);
+      clearCart();
+      updateDashboard();
+      closeSettingsModal();
+      alert('✨ 系統已完全重置歸零！祝「蛋訂ㄧ下」開張大吉！');
+    }
+
+    function openDailyModal() { document.getElementById('dailyModal').classList.remove('hidden'); }
+    function closeDailyModal() { document.getElementById('dailyModal').classList.add('hidden'); }
+    function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
+    function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+  </script>
+</body>
+</html>
