@@ -41,7 +41,7 @@
 </head>
 <body class="bg-[#faf7f2] text-stone-800 font-sans min-h-screen flex flex-col antialiased select-none">
 
-  <!-- 頂部橘色導航列 (完全還原截圖樣式) -->
+  <!-- 頂部橘色導航列 -->
   <header class="bg-gradient-to-r from-[#ba5108] via-[#c65b0c] to-[#a84403] text-amber-50 px-4 py-2.5 shadow flex items-center justify-between sticky top-0 z-30">
     <div class="flex items-center space-x-2.5">
       <span class="text-2xl p-1 bg-amber-600/50 rounded-xl inline-block">🧇</span>
@@ -51,7 +51,7 @@
           <span class="bg-[#e68a1d] text-amber-950 text-[11px] px-2 py-0.5 rounded-full font-bold shadow-xs">餐車POS</span>
         </h1>
         <p class="text-[11px] text-amber-200/90 font-medium mt-1 leading-none">
-          現烤雞蛋糕專門餐車 ｜ <span id="currentDateDisplay">2026/10/07 (週三)</span>
+          現烤雞蛋糕專門餐車 ｜ <span id="currentDateDisplay">載入中...</span>
         </p>
       </div>
     </div>
@@ -76,17 +76,17 @@
 
   <main class="flex-1 w-full mx-auto p-3 grid grid-cols-1 lg:grid-cols-12 gap-3 max-w-[1500px]">
     
-    <!-- 左側欄：菜單 (上) + 本單明細與結帳 (下) (占 7 格) -->
+    <!-- 左側欄：菜單 (上) + 本單明細與結帳 (下) -->
     <section class="lg:col-span-7 flex flex-col gap-3">
       
-      <!-- 菜單 3x3 網格卡片清單 (純粹名稱版) -->
+      <!-- 菜單 3x3 網格卡片清單 -->
       <div class="bg-white rounded-2xl p-3 shadow-xs border border-amber-200/60">
         <div class="grid grid-cols-3 gap-2.5" id="menuGrid">
-          <!-- 菜單卡片由 JavaScript 生成，對應截圖樣式 -->
+          <!-- 菜單卡片由 JavaScript 生成 -->
         </div>
       </div>
 
-      <!-- 本單明細與收銀結帳區 (對齊截圖樣式) -->
+      <!-- 本單明細與收銀結帳區 -->
       <div class="bg-white rounded-2xl p-4 shadow-xs border border-amber-200/60 flex flex-col">
         <!-- 標題列 -->
         <div class="flex items-center justify-between pb-2 border-b border-stone-100">
@@ -124,7 +124,7 @@
             </span>
           </div>
 
-          <!-- 快速面額輔助鍵 (剛好、$100、$200、$500、$1000、歸零) -->
+          <!-- 快速面額輔助鍵 -->
           <div class="grid grid-cols-6 gap-1.5 mb-3">
             <button onclick="setExactPayment()" class="bg-[#fef4d8] hover:bg-[#fae8be] text-amber-950 text-xs font-bold py-1.5 rounded-lg border border-amber-200 transition active:scale-95 text-center">剛好</button>
             <button onclick="addPayment(100)" class="bg-[#f3f4f6] hover:bg-stone-200 text-stone-700 text-xs font-bold py-1.5 rounded-lg transition active:scale-95 text-center font-mono">$100</button>
@@ -143,10 +143,10 @@
       </div>
     </section>
 
-    <!-- 右側欄：品項銷售排行榜 (上) + 今日交易流水帳 (下) (占 5 格) -->
+    <!-- 右側欄：品項銷售排行榜 (上) + 今日交易流水帳 (下) -->
     <section class="lg:col-span-5 flex flex-col gap-3">
       
-      <!-- 今日品項銷售排行榜 (對齊截圖樣式) -->
+      <!-- 今日品項銷售排行榜 -->
       <div class="bg-white rounded-2xl p-3.5 shadow-xs border border-amber-200/60 flex flex-col">
         <div class="flex items-center justify-between pb-2 mb-1 border-b border-stone-100">
           <h3 class="text-xs font-black text-stone-800 flex items-center gap-1.5">
@@ -319,16 +319,15 @@
 
   <!-- JavaScript 核心邏輯 -->
   <script>
-    // 菜單配置：純粹名稱與 Emoji，無任何形容詞
+    // 菜單配置：原味不分大小統一 $50，泰奶加購改為 $45
     const MENU_ITEMS = [
-      { id: 'orig_s',    name: '原味小',    price: 50,  badge: '人氣', icon: '🐣' },
-      { id: 'orig_l',    name: '原味大',    price: 90,  badge: '推薦', icon: '🐥' },
+      { id: 'orig',      name: '原味',      price: 50,  badge: '招牌', icon: '🐣' },
       { id: 'choco',     name: '巧克力',    price: 70,  badge: '熱賣', icon: '🍫' },
       { id: 'corn_chz',  name: '玉米起司',  price: 70,  badge: '人氣', icon: '🌽🧀' },
       { id: 'cheese',    name: '起司',      price: 70,  badge: '牽絲', icon: '🧀' },
       { id: 'custard',   name: '卡士達',    price: 70,  badge: '香滑', icon: '🍮' },
       { id: 'tea_single',name: '泰奶單點',  price: 50,  badge: '飲品', icon: '🧋' },
-      { id: 'tea_add',   name: '泰奶加購',  price: 40,  badge: '超值', icon: '🥤' },
+      { id: 'tea_add',   name: '泰奶加購',  price: 45,  badge: '超值', icon: '🥤' },
       { id: 'discount',  name: '折價卷',    price: -10, badge: '折抵', icon: '🎟️' },
     ];
 
@@ -375,7 +374,6 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(allOrders));
     }
 
-    // 渲染 3x3 菜單卡片 (依截圖外觀精確還原)
     function renderMenuCards() {
       const grid = document.getElementById('menuGrid');
       grid.innerHTML = '';
@@ -385,7 +383,6 @@
         const btn = document.createElement('button');
         btn.onclick = () => addToCart(item.id);
         
-        // 邊框顏色與背景細節
         const borderClass = isDiscount ? 'border-rose-300 bg-rose-50/50' : 'border-[#fde5b4] bg-white hover:border-amber-400';
         
         btn.className = `tap-active relative border-2 ${borderClass} rounded-2xl p-3 flex flex-col justify-between text-left shadow-xs transition group h-24 sm:h-28 overflow-hidden`;
@@ -611,7 +608,6 @@
       updateDailyModal(todayStr, revenue, count, totalQty, qtyMap, revMap);
     }
 
-    // 渲染右側品項銷售排行榜 (對齊截圖)
     function renderFlavorStats(qtyMap, revMap) {
       const container = document.getElementById('flavorStatsList');
       container.innerHTML = '';
@@ -637,7 +633,6 @@
       });
     }
 
-    // 渲染右側流水帳 (對齊截圖樣式與垃圾桶按鈕)
     function renderOrderHistory(orders) {
       const container = document.getElementById('orderHistoryList');
       document.getElementById('orderListCountHint').textContent = `共 ${orders.length} 筆`;
@@ -704,7 +699,6 @@
       alert('📋 日報表已成功複製至剪貼簿！');
     }
 
-    // 月結邏輯
     function openMonthlyModal() {
       renderMonthlyData();
       document.getElementById('monthlyModal').classList.remove('hidden');
@@ -721,7 +715,6 @@
       document.getElementById('monthlyTotalRev').textContent = `$${totalRev}`;
       document.getElementById('monthlyTotalOrders').textContent = `${monthOrders.length} 單`;
 
-      // 每日列表
       const dailyMap = {};
       monthOrders.forEach(o => {
         if (!dailyMap[o.date]) dailyMap[o.date] = { count: 0, revenue: 0 };
@@ -746,7 +739,6 @@
         `).join('');
       }
 
-      // 品項排行
       const itemMap = {};
       MENU_ITEMS.forEach(m => itemMap[m.id] = { name: m.name, icon: m.icon, count: 0, sum: 0, price: m.price });
       monthOrders.forEach(o => {
@@ -800,7 +792,6 @@
       alert('📋 月報表已成功複製至剪貼簿！');
     }
 
-    // CSV 匯出
     function exportCSV(type) {
       let orders = [];
       let filename = '';
@@ -835,7 +826,6 @@
       document.body.removeChild(link);
     }
 
-    // 清除今日資料
     function requestResetTodayOrders() {
       const todayStr = getTodayString();
       if (!confirm(`⚠️ 確定要清除今日（${todayStr}）的所有測試訂單嗎？\n此動作將讓今日營收全數歸零。`)) return;
@@ -847,7 +837,6 @@
       alert('今日訂單已歸零重置！');
     }
 
-    // 清除該月資料
     function requestResetMonthOrders() {
       const ym = document.getElementById('monthPicker').value;
       if (!confirm(`⚠️ 確定要刪除「${ym} 月份」的所有訂單紀錄嗎？`)) return;
@@ -859,7 +848,6 @@
       alert(`${ym} 月份資料已清空！`);
     }
 
-    // 全部歸零
     function requestResetAllData() {
       if (!confirm('🚨【確認全面重置】即將永久刪除「所有歷史訂單」！\n這適合在正式擺攤開張前將測試資料徹底歸零。是否確定清除？')) return;
       allOrders = [];
